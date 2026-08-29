@@ -30,7 +30,13 @@ const allowedOrigins = (process.env.CLIENT_URL || '').split(',').map(origin => o
 app.use(cors({ origin: (origin, callback) => !origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin) ? callback(null, true) : callback(new Error('Origin not allowed by CORS')), credentials: true }));
 app.use(express.json({ limit: '1mb' }));
 app.use(compression()); app.use(mongoSanitize()); app.use(xss()); app.use(requestLogger);
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false }));
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'development' ? 1000 : 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => res.status(429).json({ success: false, message: 'অনেক বেশি অনুরোধ, কিছুক্ষণ পর আবার চেষ্টা করুন' })
+}));
 app.get('/', (req, res) => res.json({ success: true, service: 'two-ms-veil-api', message: 'Factory management API is running' }));
 app.get('/health', (req, res) => res.json({ success: true, service: 'two-ms-veil-api', version: process.env.APP_VERSION || '1.0.0', database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected', memory: { rss: process.memoryUsage().rss, heapUsed: process.memoryUsage().heapUsed } }));
 app.use('/api/auth', authRoutes);
