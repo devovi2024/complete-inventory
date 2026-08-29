@@ -1,0 +1,11 @@
+import { Router } from 'express';
+import { crud } from '../utils/crud.js';
+import Customer from '../models/Customer.js';
+import Employee from '../models/Employee.js';
+import Attendance from '../models/Attendance.js';
+import Inventory from '../models/Inventory.js';
+const make = (handlers) => { const router = Router(); router.get('/', handlers.list); router.post('/', handlers.create); router.get('/:id', handlers.get); router.put('/:id', handlers.update); router.delete('/:id', handlers.remove); return router; };
+export const customerRoutes = make(crud(Customer));
+export const employeeRoutes = make(crud(Employee));
+export const attendanceRoutes = make(crud(Attendance, { populate: 'employee_id' }));
+export const inventoryRoutes = make(crud(Inventory));

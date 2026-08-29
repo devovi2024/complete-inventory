@@ -1,0 +1,7 @@
+import asyncHandler from '../utils/asyncHandler.js';
+import Order from '../models/Order.js';
+import Inventory from '../models/Inventory.js';
+function range(req) { const date = {}; if (req.query.from) date.$gte = new Date(req.query.from); if (req.query.to) { const to = new Date(req.query.to); to.setHours(23, 59, 59, 999); date.$lte = to; } return { isDeleted: false, ...(Object.keys(date).length ? { order_date: date } : {}) }; }
+export const financial = asyncHandler(async (req, res) => { const orders = await Order.find(range(req)); const totalRevenue = orders.reduce((s, o) => s + o.total_price, 0); const totalCOGS = orders.reduce((s, o) => s + o.cogs, 0); const totalProfit = orders.reduce((s, o) => s + Math.max(o.profit, 0), 0); res.json({ success: true, data: { totalRevenue, totalCOGS, totalProfit, totalLoss: Math.abs(orders.reduce((s, o) => s + Math.min(o.profit, 0), 0)), deliveredCount: orders.filter(o => o.status === 'Delivered').length, totalOrders: orders.length } }); });
+export const profitLoss = asyncHandler(async (req, res) => { const data = await Order.find(range(req)).select('customer_name product_type quantity total_price cogs profit order_date'); res.json({ success: true, data }); });
+export const valuation = asyncHandler(async (req, res) => { const items = await Inventory.find(); const data = items.map(i => ({ product_name: i.product_name, category: i.category, total_qty: i.total_qty, avg_cost: i.avg_cost, total_value: i.fifo_layers.reduce((sum, l) => sum + l.remaining * l.unit_cost, 0) })); res.json({ success: true, data }); });
