@@ -1,6 +1,66 @@
-import asyncHandler from '../utils/asyncHandler.js'; import Account from '../models/Account.js'; import JournalEntry from '../models/JournalEntry.js';
-export const accounts = asyncHandler(async (req,res)=>res.json({success:true,data:await Account.find({isActive:true}).sort({code:1}).lean()}));
-export const createAccount = asyncHandler(async (req,res)=>res.status(201).json({success:true,data:await Account.create(req.body)}));
-export const journal = asyncHandler(async (req,res)=>res.status(201).json({success:true,data:await JournalEntry.create(req.body)}));
-export const ledger = asyncHandler(async (req,res)=>{const match={isDeleted:false};if(req.query.from||req.query.to)match.date={...(req.query.from?{$gte:new Date(req.query.from)}:{}),...(req.query.to?{$lte:new Date(req.query.to)}:{})};const entries=await JournalEntry.find(match).populate('lines.account','code name type').sort({date:-1}).lean();res.json({success:true,data:entries});});
-export const trialBalance = asyncHandler(async (req,res)=>{const entries=await JournalEntry.find({isDeleted:false}).lean();const totals={};for(const entry of entries)for(const line of entry.lines){const id=String(line.account);totals[id]??={debit:0,credit:0};totals[id].debit+=line.debit;totals[id].credit+=line.credit;}const data=await Promise.all(Object.entries(totals).map(async ([account,values])=>({account:await Account.findById(account).select('code name type').lean(),...values,balance:values.debit-values.credit})));res.json({success:true,data});});
+import asyncHandler from '../utils/asyncHandler.js';
+import Account from '../models/Account.js';
+import JournalEntry from '../models/JournalEntry.js';
+
+export const accounts = asyncHandler(async (req, res) => {
+  res.json({
+    success: true,
+    data: await Account.find({ isActive: true }).sort({ code: 1 }).lean()
+  });
+});
+
+export const createAccount = asyncHandler(async (req, res) => {
+  res.status(201).json({
+    success: true,
+    data: await Account.create(req.body)
+  });
+});
+
+export const journal = asyncHandler(async (req, res) => {
+  res.status(201).json({
+    success: true,
+    data: await JournalEntry.create(req.body)
+  });
+});
+
+export const ledger = asyncHandler(async (req, res) => {
+  const match = { isDeleted: false };
+  
+  if (req.query.from || req.query.to) {
+    match.date = {
+      ...(req.query.from ? { $gte: new Date(req.query.from) } : {}),
+      ...(req.query.to ? { $lte: new Date(req.query.to) } : {})
+    };
+  }
+  
+  const entries = await JournalEntry.find(match)
+    .populate('lines.account', 'code name type')
+    .sort({ date: -1 })
+    .lean();
+  
+  res.json({ success: true, data: entries });
+});
+
+export const trialBalance = asyncHandler(async (req, res) => {
+  const entries = await JournalEntry.find({ isDeleted: false }).lean();
+  const totals = {};
+  
+  for (const entry of entries) {
+    for (const line of entry.lines) {
+      const id = String(line.account);
+      totals[id] ??= { debit: 0, credit: 0 };
+      totals[id].debit += line.debit;
+      totals[id].credit += line.credit;
+    }
+  }
+  
+  const data = await Promise.all(
+    Object.entries(totals).map(async ([account, values]) => ({
+      account: await Account.findById(account).select('code name type').lean(),
+      ...values,
+      balance: values.debit - values.credit
+    }))
+  );
+  
+  res.json({ success: true, data });
+});

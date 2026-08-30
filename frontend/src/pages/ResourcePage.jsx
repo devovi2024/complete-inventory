@@ -1,5 +1,173 @@
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, Users, UserRoundCog, Clock3, Search, Save } from 'lucide-react';
-import { del, post, put } from '../api'; import { useStore } from '../store'; import { Button, Empty, FormField, Loading, Modal, PageHeader, Toolbar } from '../components/UI';
-const configs={customers:{title:'কাস্টমার',subtitle:'গ্রিড ভিউতে সমস্ত কাস্টমার',icon:Users,path:'/customers',key:'customers',fields:[['name','নাম','text'],['phone','ফোন','text'],['type','টাইপ','select',['Regular','Wholesale','VIP']],['address','ঠিকানা','text']]},employees:{title:'কর্মী',subtitle:'ফ্যাক্টরির সকল কর্মীর তথ্য',icon:UserRoundCog,path:'/employees',key:'employees',fields:[['name','নাম','text'],['designation','পদবি','text'],['department','বিভাগ','text'],['status','স্ট্যাটাস','select',['Active','Inactive']],['phone','ফোন','text'],['email','ইমেইল','email'],['salary','বেতন','number'],['join_date','যোগদানের তারিখ','date']]},attendance:{title:'হাজিরা',subtitle:'দৈনন্দিন উপস্থিতি রেকর্ড',icon:Clock3,path:'/attendance',key:'attendance',fields:[['employee_id','কর্মী আইডি','text'],['employee_name','কর্মী নাম','text'],['date','তারিখ','date'],['check_in','চেক-ইন','time'],['check_out','চেক-আউট','time'],['status','স্ট্যাটাস','select',['Present','Late','Absent','On Leave']]]}};
-export default function ResourcePage({type}){const c=configs[type];const data=useStore(s=>s.data[c.key])||[];const load=useStore(s=>s.load);const setToast=useStore(s=>s.setToast);const [search,setSearch]=useState('');const [modal,setModal]=useState(null);const [form,setForm]=useState({});const [loading,setLoading]=useState(true);useEffect(()=>{load(c.key,c.path).catch(e=>setToast(e.message)).finally(()=>setLoading(false))},[c.key,c.path,load,setToast]);const filtered=data.filter(item=>Object.values(item).some(v=>String(v||'').toLowerCase().includes(search.toLowerCase())));async function save(e){e.preventDefault();try{if(modal?._id)await put(`${c.path}/${modal._id}`,form);else await post(c.path,form);setToast('সফলভাবে সংরক্ষণ হয়েছে');setModal(null);load(c.key,c.path)}catch(e){setToast(e.message)}}async function remove(id){if(!confirm('এই তথ্যটি মুছে ফেলবেন?'))return;try{await del(`${c.path}/${id}`);setToast('মুছে ফেলা হয়েছে');load(c.key,c.path)}catch(e){setToast(e.message)}}return <><PageHeader icon={c.icon} title={c.title} subtitle={c.subtitle} action={<Button icon={Plus} onClick={()=>{setForm({});setModal({})}}>নতুন যোগ করুন</Button>}/><Toolbar value={search} onChange={setSearch} placeholder="নাম বা আইডি দিয়ে খুঁজুন..."/>{loading?<Loading/>:filtered.length===0?<Empty/>:<div className="resource-grid">{filtered.map(item=><article className="resource-card" key={item._id}><div className="resource-top"><div className="avatar">{(item.name||item.employee_name||'?').slice(0,2).toUpperCase()}</div><span className={`status status-${String(item.status||item.type||'active').toLowerCase().replace(' ','-')}`}>{item.status||item.type}</span></div><h3>{item.name||item.employee_name}</h3><p>{item.designation||item.phone||item.date}</p><small>{item.department||item.address||item.email||'Two M-s Veil'}</small><div className="card-actions"><Button variant="outline" icon={Pencil} onClick={()=>{setForm(item);setModal(item)}}>এডিট</Button><button className="icon-btn danger-btn" onClick={()=>remove(item._id)}><Trash2 size={17}/></button></div></article>)}</div>}{modal&&<Modal title={modal._id?'তথ্য সম্পাদনা':`নতুন ${c.title}`} onClose={()=>setModal(null)}><form onSubmit={save} className="form-grid">{c.fields.map(([key,label,type,options])=><FormField key={key} label={label}>{type==='select'?<select value={form[key]||options[0]} onChange={e=>setForm({...form,[key]:e.target.value})}>{options.map(o=><option key={o}>{o}</option>)}</select>:<input required={['name','employee_id','employee_name'].includes(key)} type={type} value={form[key]||''} onChange={e=>setForm({...form,[key]:e.target.value})}/>}</FormField>)}<Button icon={Save} type="submit">সংরক্ষণ করুন</Button></form></Modal>}</>}
+import { del, post, put } from '../api';
+import { useStore } from '../store';
+import { Button, Empty, FormField, Loading, Modal, PageHeader, Toolbar } from '../components/UI';
+
+const configs = {
+  customers: {
+    title: 'কাস্টমার',
+    subtitle: 'গ্রিড ভিউতে সমস্ত কাস্টমার',
+    icon: Users,
+    path: '/customers',
+    key: 'customers',
+    fields: [
+      ['name', 'নাম', 'text'],
+      ['phone', 'ফোন', 'text'],
+      ['type', 'টাইপ', 'select', ['Regular', 'Wholesale', 'VIP']],
+      ['address', 'ঠিকানা', 'text']
+    ]
+  },
+  employees: {
+    title: 'কর্মী',
+    subtitle: 'ফ্যাক্টরির সকল কর্মীর তথ্য',
+    icon: UserRoundCog,
+    path: '/employees',
+    key: 'employees',
+    fields: [
+      ['name', 'নাম', 'text'],
+      ['designation', 'পদবি', 'text'],
+      ['department', 'বিভাগ', 'text'],
+      ['status', 'স্ট্যাটাস', 'select', ['Active', 'Inactive']],
+      ['phone', 'ফোন', 'text'],
+      ['email', 'ইমেইল', 'email'],
+      ['salary', 'বেতন', 'number'],
+      ['join_date', 'যোগদানের তারিখ', 'date']
+    ]
+  },
+  attendance: {
+    title: 'হাজিরা',
+    subtitle: 'দৈনন্দিন উপস্থিতি রেকর্ড',
+    icon: Clock3,
+    path: '/attendance',
+    key: 'attendance',
+    fields: [
+      ['employee_id', 'কর্মী আইডি', 'text'],
+      ['employee_name', 'কর্মী নাম', 'text'],
+      ['date', 'তারিখ', 'date'],
+      ['check_in', 'চেক-ইন', 'time'],
+      ['check_out', 'চেক-আউট', 'time'],
+      ['status', 'স্ট্যাটাস', 'select', ['Present', 'Late', 'Absent', 'On Leave']]
+    ]
+  }
+};
+
+export default function ResourcePage({ type }) {
+  const c = configs[type];
+  const data = useStore(s => s.data[c.key]) || [];
+  const load = useStore(s => s.load);
+  const setToast = useStore(s => s.setToast);
+  const [search, setSearch] = useState('');
+  const [modal, setModal] = useState(null);
+  const [form, setForm] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    load(c.key, c.path)
+      .catch(e => setToast(e.message))
+      .finally(() => setLoading(false));
+  }, [c.key, c.path, load, setToast]);
+
+  const filtered = data.filter(item =>
+    Object.values(item).some(v =>
+      String(v || '').toLowerCase().includes(search.toLowerCase())
+    )
+  );
+
+  async function save(e) {
+    e.preventDefault();
+    try {
+      if (modal?._id) await put(`${c.path}/${modal._id}`, form);
+      else await post(c.path, form);
+      setToast('সফলভাবে সংরক্ষণ হয়েছে');
+      setModal(null);
+      load(c.key, c.path);
+    } catch (e) {
+      setToast(e.message);
+    }
+  }
+
+  async function remove(id) {
+    if (!confirm('এই তথ্যটি মুছে ফেলবেন?')) return;
+    try {
+      await del(`${c.path}/${id}`);
+      setToast('মুছে ফেলা হয়েছে');
+      load(c.key, c.path);
+    } catch (e) {
+      setToast(e.message);
+    }
+  }
+
+  return (
+    <>
+      <PageHeader
+        icon={c.icon}
+        title={c.title}
+        subtitle={c.subtitle}
+        action={
+          <Button icon={Plus} onClick={() => { setForm({}); setModal({}); }}>
+            নতুন যোগ করুন
+          </Button>
+        }
+      />
+
+      <Toolbar value={search} onChange={setSearch} placeholder="নাম বা আইডি দিয়ে খুঁজুন..." />
+
+      {loading ? (
+        <Loading />
+      ) : filtered.length === 0 ? (
+        <Empty />
+      ) : (
+        <div className="resource-grid">
+          {filtered.map(item => (
+            <article className="resource-card" key={item._id}>
+              <div className="resource-top">
+                <div className="avatar">
+                  {(item.name || item.employee_name || '?').slice(0, 2).toUpperCase()}
+                </div>
+                <span className={`status status-${String(item.status || item.type || 'active').toLowerCase().replace(' ', '-')}`}>
+                  {item.status || item.type}
+                </span>
+              </div>
+              <h3>{item.name || item.employee_name}</h3>
+              <p>{item.designation || item.phone || item.date}</p>
+              <small>{item.department || item.address || item.email || 'Two M-s Veil'}</small>
+              <div className="card-actions">
+                <Button variant="outline" icon={Pencil} onClick={() => { setForm(item); setModal(item); }}>
+                  এডিট
+                </Button>
+                <button className="icon-btn danger-btn" onClick={() => remove(item._id)}>
+                  <Trash2 size={17} />
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+
+      {modal && (
+        <Modal title={modal._id ? 'তথ্য সম্পাদনা' : `নতুন ${c.title}`} onClose={() => setModal(null)}>
+          <form onSubmit={save} className="form-grid">
+            {c.fields.map(([key, label, type, options]) => (
+              <FormField key={key} label={label}>
+                {type === 'select' ? (
+                  <select value={form[key] || options[0]} onChange={e => setForm({ ...form, [key]: e.target.value })}>
+                    {options.map(o => <option key={o}>{o}</option>)}
+                  </select>
+                ) : (
+                  <input
+                    required={['name', 'employee_id', 'employee_name'].includes(key)}
+                    type={type}
+                    value={form[key] || ''}
+                    onChange={e => setForm({ ...form, [key]: e.target.value })}
+                  />
+                )}
+              </FormField>
+            ))}
+            <Button icon={Save} type="submit">সংরক্ষণ করুন</Button>
+          </form>
+        </Modal>
+      )}
+    </>
+  );
+}

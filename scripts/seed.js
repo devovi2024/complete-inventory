@@ -1,2 +1,67 @@
-import 'dotenv/config'; import mongoose from 'mongoose'; import connectDB from '../config/db.js'; import User from '../models/User.js'; import Customer from '../models/Customer.js'; import Employee from '../models/Employee.js'; import Inventory from '../models/Inventory.js'; import { addFIFOLayer } from '../utils/fifo.js';
-await connectDB(); await Promise.all([User.deleteMany({}), Customer.deleteMany({}), Employee.deleteMany({}), Inventory.deleteMany({})]); await User.create({ name: 'System Admin', email: 'admin@example.com', password: 'Admin@1234', role: 'admin' }); const customer = await Customer.create({ name: 'Fatima Akter', phone: '01712345678', type: 'Wholesale', address: 'Mirpur, Dhaka' }); await Employee.create({ name: 'Rahim Mia', designation: 'Master Cutter', department: 'Cutting', status: 'Active' }); const item = new Inventory({ product_name: 'Black Nylon Fabric', category: 'Fabric', unit: 'Meter' }); addFIFOLayer(item, { quantity: 150, unitCost: 120, note: 'Seed stock' }); await item.save(); console.log(`Seeded ${customer.name} and sample inventory. Admin: admin@example.com / Admin@1234`); await mongoose.disconnect();
+import 'dotenv/config';
+import mongoose from 'mongoose';
+import connectDB from '../config/db.js';
+import User from '../models/User.js';
+import Customer from '../models/Customer.js';
+import Employee from '../models/Employee.js';
+import Inventory from '../models/Inventory.js';
+import Shareholder from '../models/Shareholder.js';
+import { addFIFOLayer } from '../utils/fifo.js';
+
+await connectDB();
+
+await Promise.all([
+  User.deleteMany({}),
+  Customer.deleteMany({}),
+  Employee.deleteMany({}),
+  Inventory.deleteMany({}),
+  Shareholder.deleteMany({})
+]);
+
+await User.create({
+  name: 'System Admin',
+  email: 'admin@example.com',
+  password: 'Admin@1234',
+  role: 'admin'
+});
+
+const customer = await Customer.create({
+  name: 'Fatima Akter',
+  phone: '01712345678',
+  type: 'Wholesale',
+  address: 'Mirpur, Dhaka'
+});
+
+await Employee.create({
+  name: 'Rahim Mia',
+  designation: 'Master Cutter',
+  department: 'Cutting',
+  status: 'Active'
+});
+
+const item = new Inventory({
+  product_name: 'Black Nylon Fabric',
+  category: 'Fabric',
+  unit: 'Meter'
+});
+addFIFOLayer(item, { quantity: 150, unitCost: 120, note: 'Seed stock' });
+await item.save();
+
+await Shareholder.create([
+  {
+    name: 'Arfan',
+    designation: 'Senior Partner',
+    role: 'senior',
+    investments: [{ amount: 4000, date: new Date(), note: 'Initial capital' }]
+  },
+  {
+    name: 'Rustom',
+    designation: 'Junior Partner',
+    role: 'junior',
+    investments: [{ amount: 1000, date: new Date(), note: 'Initial capital' }]
+  }
+]);
+
+console.log(`Seeded ${customer.name}, sample inventory, and shareholders Arfan/Rustom. Admin: admin@example.com / Admin@1234`);
+
+await mongoose.disconnect();

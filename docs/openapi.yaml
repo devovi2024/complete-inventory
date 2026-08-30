@@ -4,12 +4,26 @@ info:
   version: 1.0.0
 servers:
   - url: http://localhost:5000/api/v1
+
 components:
   securitySchemes:
-    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  
   schemas:
-    Error: { type: object, properties: { success: { type: boolean }, message: { type: string } } }
-security: [{ bearerAuth: [] }]
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+
+security:
+  - bearerAuth: []
+
 paths:
   /auth/register:
     post:
@@ -17,21 +31,83 @@ paths:
       summary: Register a staff user
       requestBody:
         required: true
-        content: { application/json: { schema: { type: object, required: [name, email, password], properties: { name: { type: string }, email: { type: string, format: email }, password: { type: string, format: password } } } } }
-      responses: { '201': { description: Created }, '422': { description: Validation error } }
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '201':
+          description: Created
+        '422':
+          description: Validation error
+
   /auth/login:
     post:
       security: []
       summary: Login and obtain access/refresh tokens
-      responses: { '200': { description: Success } }
+      responses:
+        '200':
+          description: Success
+
   /auth/refresh:
-    post: { security: [], summary: Rotate a refresh token, responses: { '200': { description: Success } } }
+    post:
+      security: []
+      summary: Rotate a refresh token
+      responses:
+        '200':
+          description: Success
+
   /orders:
-    get: { summary: List orders with filters and pagination, responses: { '200': { description: Success } } }
-    post: { summary: Create an order, responses: { '201': { description: Created } } }
+    get:
+      summary: List orders with filters and pagination
+      responses:
+        '200':
+          description: Success
+    post:
+      summary: Create an order
+      responses:
+        '201':
+          description: Created
+
   /orders/{id}/process-fifo:
-    post: { summary: Atomically consume FIFO inventory and calculate COGS, parameters: [{ in: path, name: id, required: true, schema: { type: string } }], responses: { '200': { description: Success } } }
+    post:
+      summary: Atomically consume FIFO inventory and calculate COGS
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+
   /inventory/{id}/layers:
-    post: { summary: Add a FIFO layer, parameters: [{ in: path, name: id, required: true, schema: { type: string } }], responses: { '201': { description: Created } } }
+    post:
+      summary: Add a FIFO layer
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Created
+
   /reports/financial:
-    get: { summary: Financial summary, responses: { '200': { description: Success } } }
+    get:
+      summary: Financial summary
+      responses:
+        '200':
+          description: Success

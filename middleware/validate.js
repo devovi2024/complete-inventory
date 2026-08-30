@@ -5,7 +5,10 @@ export function validate(req, res, next) {
   if (!errors.isEmpty()) {
     res.status(422);
     const error = new Error('Validation failed');
-    error.details = errors.array().map(item => ({ field: item.path, message: item.msg }));
+    error.details = errors.array().map(item => ({
+      field: item.path,
+      message: item.msg
+    }));
     throw error;
   }
   next();

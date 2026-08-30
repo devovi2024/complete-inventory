@@ -1,8 +1,125 @@
-import asyncHandler from '../utils/asyncHandler.js'; import User from '../models/User.js'; import crypto from 'node:crypto'; import { authenticator } from 'otplib'; import QRCode from 'qrcode'; import { emailTemplate, sendMail } from '../utils/mailer.js'; import { audit } from '../utils/audit.js';
-const hash = value => crypto.createHash('sha256').update(value).digest('hex'); const frontend = process.env.CLIENT_URL?.split(',')[0] || 'http://localhost:3000';
-async function tokenMail(user, field, hours, subject, title, body, route) { const raw = crypto.randomBytes(32).toString('hex'); user[field] = hash(raw); user[`${field.replace('TokenHash','')}Expires`] = new Date(Date.now() + hours * 3600000); await user.save(); await sendMail({ to: user.email, subject, html: emailTemplate(title, body, `${frontend}/${route}?token=${raw}`) }); }
-export const forgotPassword = asyncHandler(async (req, res) => { const user = await User.findOne({ email: req.body.email, isDeleted: false }); if (user) await tokenMail(user, 'resetTokenHash', 1, 'Reset your password', 'Password reset', 'Reset your Two M-s Veil password.', 'reset-password'); res.json({ success: true, message: 'If the email exists, a reset link has been sent' }); });
-export const resetPassword = asyncHandler(async (req, res) => { const user = await User.findOne({ resetTokenHash: hash(req.body.token), resetExpires: { $gt: new Date() } }).select('+password'); if (!user) { res.status(400); throw new Error('Invalid or expired reset token'); } user.password = req.body.password; user.resetTokenHash = undefined; user.resetExpires = undefined; user.mustChangePassword = false; await user.save(); res.json({ success: true, message: 'Password reset successfully' }); });
-export const verifyEmail = asyncHandler(async (req, res) => { const user = await User.findOne({ verificationTokenHash: hash(req.body.token), verificationExpires: { $gt: new Date() } }); if (!user) { res.status(400); throw new Error('Invalid or expired verification token'); } user.isVerified = true; user.verificationTokenHash = undefined; user.verificationExpires = undefined; await user.save(); res.json({ success: true, message: 'Email verified' }); });
-export const setup2FA = asyncHandler(async (req, res) => { if (req.user.role !== 'admin') { res.status(403); throw new Error('Admin 2FA only'); } const secret = authenticator.generateSecret(); const otpauth = authenticator.keyuri(req.user.email, 'Two M-s Veil', secret); const qr = await QRCode.toDataURL(otpauth); await User.findByIdAndUpdate(req.user._id, { twoFactorSecret: secret }); res.json({ success: true, data: { qrCode: qr, secret } }); });
-export const enable2FA = asyncHandler(async (req, res) => { const user = await User.findById(req.user._id).select('+twoFactorSecret'); if (user.role !== 'admin' || !authenticator.check(req.body.code, user.twoFactorSecret)) { res.status(400); throw new Error('Invalid 2FA code'); } const backupCodes = Array.from({ length: 10 }, () => crypto.randomBytes(5).toString('hex')); user.twoFactorEnabled = true; user.backupCodes = backupCodes.map(hash); await user.save(); await audit(req, 'security.2fa.enabled', 'User', user._id); res.json({ success: true, backupCodes }); });
+import asyncHandler from '../utils/asyncHandler.js';
+import User from '../models/User.js';
+import crypto from 'node:crypto';
+import { authenticator } from 'otplib';
+import QRCode from 'qrcode';
+import { emailTemplate, sendMail } from '../utils/mailer.js';
+import { audit } from '../utils/audit.js';
+
+const hash = value => crypto.createHash('sha256').update(value).digest('hex');
+const frontend = process.env.CLIENT_URL?.split(',')[0] || 'http://localhost:3000';
+
+async function tokenMail(user, field, hours, subject, title, body, route) {
+  const raw = crypto.randomBytes(32).toString('hex');
+  user[field] = hash(raw);
+  user[`${field.replace('TokenHash', '')}Expires`] = new Date(Date.now() + hours * 3600000);
+  await user.save();
+  await sendMail({
+    to: user.email,
+    subject,
+    html: emailTemplate(title, body, `${frontend}/${route}?token=${raw}`)
+  });
+}
+
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const user = await User.findOne({ email: req.body.email, isDeleted: false });
+  
+  if (user) {
+    await tokenMail(
+      user,
+      'resetTokenHash',
+      1,
+      'Reset your password',
+      'Password reset',
+      'Reset your Two M-s Veil password.',
+      'reset-password'
+    );
+  }
+  
+  res.json({
+    success: true,
+    message: 'If the email exists, a reset link has been sent'
+  });
+});
+
+export const resetPassword = asyncHandler(async (req, res) => {
+  const user = await User.findOne({
+    resetTokenHash: hash(req.body.token),
+    resetExpires: { $gt: new Date() }
+  }).select('+password');
+  
+  if (!user) {
+    res.status(400);
+    throw new Error('Invalid or expired reset token');
+  }
+  
+  user.password = req.body.password;
+  user.resetTokenHash = undefined;
+  user.resetExpires = undefined;
+  user.mustChangePassword = false;
+  await user.save();
+  
+  res.json({
+    success: true,
+    message: 'Password reset successfully'
+  });
+});
+
+export const verifyEmail = asyncHandler(async (req, res) => {
+  const user = await User.findOne({
+    verificationTokenHash: hash(req.body.token),
+    verificationExpires: { $gt: new Date() }
+  });
+  
+  if (!user) {
+    res.status(400);
+    throw new Error('Invalid or expired verification token');
+  }
+  
+  user.isVerified = true;
+  user.verificationTokenHash = undefined;
+  user.verificationExpires = undefined;
+  await user.save();
+  
+  res.json({
+    success: true,
+    message: 'Email verified'
+  });
+});
+
+export const setup2FA = asyncHandler(async (req, res) => {
+  if (req.user.role !== 'admin') {
+    res.status(403);
+    throw new Error('Admin 2FA only');
+  }
+  
+  const secret = authenticator.generateSecret();
+  const otpauth = authenticator.keyuri(req.user.email, 'Two M-s Veil', secret);
+  const qr = await QRCode.toDataURL(otpauth);
+  
+  await User.findByIdAndUpdate(req.user._id, { twoFactorSecret: secret });
+  
+  res.json({
+    success: true,
+    data: { qrCode: qr, secret }
+  });
+});
+
+export const enable2FA = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).select('+twoFactorSecret');
+  
+  if (user.role !== 'admin' || !authenticator.check(req.body.code, user.twoFactorSecret)) {
+    res.status(400);
+    throw new Error('Invalid 2FA code');
+  }
+  
+  const backupCodes = Array.from({ length: 10 }, () => crypto.randomBytes(5).toString('hex'));
+  
+  user.twoFactorEnabled = true;
+  user.backupCodes = backupCodes.map(hash);
+  await user.save();
+  
+  await audit(req, 'security.2fa.enabled', 'User', user._id);
+  
+  res.json({ success: true, backupCodes });
+});

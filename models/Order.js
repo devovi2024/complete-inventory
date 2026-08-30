@@ -1,6 +1,99 @@
 import mongoose from 'mongoose';
 import { ORDER_STATUSES } from '../config/constants.js';
-const tracking = new mongoose.Schema({ step: String, status: { type: String, enum: ['done', 'active', 'pending'], default: 'pending' }, time: Date }, { _id: false });
-const schema = new mongoose.Schema({ customer_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', required: true }, customer_name: { type: String, required: true }, order_date: { type: Date, default: Date.now }, delivery_date: Date, product_type: { type: String, required: true }, quantity: { type: Number, required: true, min: 0.01 }, unit_price: { type: Number, required: true, min: 0 }, total_price: { type: Number, default: 0 }, discount: { type: Number, default: 0, min: 0 }, advanced_paid: { type: Number, default: 0, min: 0 }, due_amount: { type: Number, default: 0 }, status: { type: String, enum: ORDER_STATUSES, default: 'Pending' }, note: String, product_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Inventory' }, cogs: { type: Number, default: 0 }, profit: { type: Number, default: 0 }, profit_margin: { type: Number, default: 0 }, tracking: [tracking], isDeleted: { type: Boolean, default: false }, deletedAt: Date }, { timestamps: true });
-schema.index({ status: 1, order_date: -1, isDeleted: 1 }); schema.index({ customer_id: 1, order_date: -1 }); schema.index({ product_id: 1 });
+
+const tracking = new mongoose.Schema({
+  step: String,
+  status: {
+    type: String,
+    enum: ['done', 'active', 'pending'],
+    default: 'pending'
+  },
+  time: Date
+}, {
+  _id: false
+});
+
+const schema = new mongoose.Schema({
+  customer_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Customer',
+    required: true
+  },
+  customer_name: {
+    type: String,
+    required: true
+  },
+  order_date: {
+    type: Date,
+    default: Date.now
+  },
+  delivery_date: Date,
+  product_type: {
+    type: String,
+    required: true
+  },
+  quantity: {
+    type: Number,
+    required: true,
+    min: 0.01
+  },
+  unit_price: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  total_price: {
+    type: Number,
+    default: 0
+  },
+  discount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  advanced_paid: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  due_amount: {
+    type: Number,
+    default: 0
+  },
+  status: {
+    type: String,
+    enum: ORDER_STATUSES,
+    default: 'Pending'
+  },
+  note: String,
+  product_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Inventory'
+  },
+  cogs: {
+    type: Number,
+    default: 0
+  },
+  profit: {
+    type: Number,
+    default: 0
+  },
+  profit_margin: {
+    type: Number,
+    default: 0
+  },
+  tracking: [tracking],
+  isDeleted: {
+    type: Boolean,
+    default: false
+  },
+  deletedAt: Date
+}, {
+  timestamps: true
+});
+
+schema.index({ status: 1, order_date: -1, isDeleted: 1 });
+schema.index({ customer_id: 1, order_date: -1 });
+schema.index({ product_id: 1 });
+
 export default mongoose.model('Order', schema);

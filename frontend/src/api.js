@@ -13,6 +13,7 @@ async function parseBody(response) {
 export async function request(path, options = {}, retry = true, attempt = 0) {
   const token = localStorage.getItem('factory_token');
   let response;
+  
   try {
     response = await fetch(`${API}/api${path}`, {
       ...options,

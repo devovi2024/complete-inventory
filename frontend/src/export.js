@@ -1,3 +1,41 @@
-import { jsPDF } from 'jspdf'; import * as XLSX from 'xlsx';
-export function exportXlsx(filename, sheetName, rows){const workbook=XLSX.utils.book_new();const sheet=XLSX.utils.json_to_sheet(rows);XLSX.utils.book_append_sheet(workbook,sheet,sheetName);XLSX.writeFile(workbook,filename)}
-export function exportPdf(filename,title,columns,rows){const pdf=new jsPDF({orientation:'landscape'});pdf.setFontSize(18);pdf.text(title,14,18);pdf.setFontSize(9);pdf.text(`Generated ${new Date().toLocaleString()}`,14,26);let y=38;const width=270/columns.length;pdf.setFontSize(8);columns.forEach((column,index)=>pdf.text(String(column).slice(0,18),14+index*width,y));y+=8;rows.forEach(row=>{columns.forEach((column,index)=>pdf.text(String(row[column]??'').slice(0,18),14+index*width,y));y+=6;if(y>190){pdf.addPage();y=20}});pdf.save(filename)}
+import { jsPDF } from 'jspdf';
+import * as XLSX from 'xlsx';
+
+export function exportXlsx(filename, sheetName, rows) {
+  const workbook = XLSX.utils.book_new();
+  const sheet = XLSX.utils.json_to_sheet(rows);
+  XLSX.utils.book_append_sheet(workbook, sheet, sheetName);
+  XLSX.writeFile(workbook, filename);
+}
+
+export function exportPdf(filename, title, columns, rows) {
+  const pdf = new jsPDF({ orientation: 'landscape' });
+  
+  pdf.setFontSize(18);
+  pdf.text(title, 14, 18);
+  pdf.setFontSize(9);
+  pdf.text(`Generated ${new Date().toLocaleString()}`, 14, 26);
+  
+  let y = 38;
+  const width = 270 / columns.length;
+  
+  pdf.setFontSize(8);
+  columns.forEach((column, index) => {
+    pdf.text(String(column).slice(0, 18), 14 + index * width, y);
+  });
+  y += 8;
+  
+  rows.forEach(row => {
+    columns.forEach((column, index) => {
+      pdf.text(String(row[column] ?? '').slice(0, 18), 14 + index * width, y);
+    });
+    y += 6;
+    
+    if (y > 190) {
+      pdf.addPage();
+      y = 20;
+    }
+  });
+  
+  pdf.save(filename);
+}

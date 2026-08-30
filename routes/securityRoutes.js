@@ -1,2 +1,43 @@
-import { Router } from 'express'; import { body } from 'express-validator'; import { forgotPassword, resetPassword, verifyEmail, setup2FA, enable2FA } from '../controllers/securityController.js'; import { protect, authorize } from '../middleware/auth.js'; import { validate } from '../middleware/validate.js';
-const router = Router(); router.post('/forgot-password', body('email').isEmail(), validate, forgotPassword); router.post('/reset-password', body('token').notEmpty(), body('password').isStrongPassword({ minLength: 8, minLowercase: 1, minUppercase: 1, minNumbers: 1, minSymbols: 1 }), validate, resetPassword); router.post('/verify-email', body('token').notEmpty(), validate, verifyEmail); router.use(protect, authorize('admin')); router.post('/2fa/setup', setup2FA); router.post('/2fa/enable', body('code').isNumeric().isLength({ min: 6, max: 6 }), validate, enable2FA); export default router;
+import { Router } from 'express';
+import { body } from 'express-validator';
+import { forgotPassword, resetPassword, verifyEmail, setup2FA, enable2FA } from '../controllers/securityController.js';
+import { protect, authorize } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+
+const router = Router();
+
+router.post('/forgot-password',
+  body('email').isEmail(),
+  validate,
+  forgotPassword
+);
+
+router.post('/reset-password',
+  body('token').notEmpty(),
+  body('password').isStrongPassword({
+    minLength: 8,
+    minLowercase: 1,
+    minUppercase: 1,
+    minNumbers: 1,
+    minSymbols: 1
+  }),
+  validate,
+  resetPassword
+);
+
+router.post('/verify-email',
+  body('token').notEmpty(),
+  validate,
+  verifyEmail
+);
+
+router.use(protect, authorize('admin'));
+
+router.post('/2fa/setup', setup2FA);
+router.post('/2fa/enable',
+  body('code').isNumeric().isLength({ min: 6, max: 6 }),
+  validate,
+  enable2FA
+);
+
+export default router;
