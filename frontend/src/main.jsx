@@ -17,7 +17,7 @@ const CustomerPage = lazy(() => import('./pages/CustomerPage'));
 const Inventory = lazy(() => import('./pages/InventoryPage'));
 const ResourcePage = lazy(() => import('./pages/ResourcePage'));
 const Attendance = lazy(() => import('./pages/Attendance'));
-const Shareholders = lazy(() => import('./pages/Shareholders'));  // ✅ Fixed
+const Shareholders = lazy(() => import('./pages/ShareholdersPage')); 
 const Reports = lazy(() => import('./ReportsPage'));
 const Settings = lazy(() => import('./SettingsPage'));
 const Profile = lazy(() => import('./pages/ProfilePage'));
